@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>NEWGEN LAUNCHER</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+    }
+    .card {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+      border-radius: 24px;
+      padding: 32px 24px;
+      max-width: 580px;
+      width: 100%;
+    }
+    .badge {
+      display: inline-block;
+      background: rgba(56, 189, 248, 0.15);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 4px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-size: 24px;
+      font-weight: 900;
+      color: #ffffff;
+      margin-bottom: 8px;
+      letter-spacing: 0.5px;
+    }
+    p {
+      color: #94a3b8;
+      font-size: 14px;
+      line-height: 1.5;
+      margin-bottom: 20px;
+    }
+    .path-box {
+      background: #020617;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-family: monospace;
+      font-size: 13px;
+      color: #4ade80;
+      margin-bottom: 24px;
+      word-break: break-all;
+    }
+    .btn {
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: 0 10px 20px -5px rgba(2, 132, 199, 0.5);
+    }
+    .btn:active {
+      transform: scale(0.98);
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="badge">NEWGEN MODULAR LAUNCHER</div>
+    <h1>NENHUM JOGO ENCONTRADO</h1>
+    <p>O Launcher está pronto e aguardando os arquivos do jogo. Coloque o build do seu jogo (index.html e assets) nesta pasta do seu celular:</p>
+    <div class="path-box">/sdcard/NEWGEN/game/index.html</div>
+    <p>Depois de colar os arquivos, basta tocar no botão abaixo:</p>
+    <button class="btn" onclick="location.reload()">RECARREGAR JOGO</button>
+  </div>
+</body>
+</html>
