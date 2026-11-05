@@ -10,9 +10,9 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings;
+import android.util.Log;
 import android.view.View;
-import android.view.WindowInsets;
-import android.view.WindowInsetsController;
+import android.view.Window;
 import android.view.WindowManager;
 import android.webkit.ConsoleMessage;
 import android.webkit.PermissionRequest;
@@ -26,17 +26,17 @@ import android.widget.Toast;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.InputStream;
 import java.io.FileOutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 public class MainActivity extends Activity {
 
-    private WebView webView;
+    private static final String TAG = "NEWGEN_LAUNCHER";
     private static final int STORAGE_PERMISSION_CODE = 1001;
 
-    // Expected paths for modular loading
+    private WebView webView;
+
     private final File baseDir = new File(Environment.getExternalStorageDirectory(), "NEWGEN");
     private final File gameDir = new File(baseDir, "game");
     private final File gameIndex = new File(gameDir, "index.html");
@@ -46,23 +46,24 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Keep screen on during football matches
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        hideSystemUI();
+        try {
+            // Safe window fullscreen configuration
+            requestWindowFeature(Window.FEATURE_NO_TITLE);
+            getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-        initWebView();
-        checkAndRequestPermissions();
+            initWebView();
+            applyImmersiveMode();
+            checkAndRequestPermissions();
+        } catch (Throwable t) {
+            Log.e(TAG, "Fatal error on onCreate", t);
+        }
     }
 
-    private void hideSystemUI() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            final WindowInsetsController insetsController = getWindow().getInsetsController();
-            if (insetsController != null) {
-                insetsController.hide(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
-                insetsController.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
-            }
-        } else {
-            getWindow().getDecorView().setSystemUiVisibility(
+    private void applyImmersiveMode() {
+        try {
+            View decorView = getWindow().getDecorView();
+            decorView.setSystemUiVisibility(
                     View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
                             | View.SYSTEM_UI_FLAG_FULLSCREEN
                             | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
@@ -70,6 +71,8 @@ public class MainActivity extends Activity {
                             | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
                             | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
             );
+        } catch (Exception e) {
+            Log.w(TAG, "Could not set immersive mode", e);
         }
     }
 
@@ -77,78 +80,89 @@ public class MainActivity extends Activity {
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
         if (hasFocus) {
-            hideSystemUI();
+            applyImmersiveMode();
         }
     }
 
     @SuppressLint("SetJavaScriptEnabled")
     private void initWebView() {
-        webView = new WebView(this);
-        setContentView(webView);
+        try {
+            webView = new WebView(this);
+            setContentView(webView);
 
-        // Enable full hardware acceleration
-        webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+            // Hardware acceleration
+            webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
 
-        WebSettings settings = webView.getSettings();
-        settings.setJavaScriptEnabled(true);
-        settings.setDomStorageEnabled(true);
-        settings.setDatabaseEnabled(true);
-        settings.setAllowFileAccess(true);
-        settings.setAllowContentAccess(true);
-        settings.setAllowFileAccessFromFileURLs(true);
-        settings.setAllowUniversalAccessFromFileURLs(true);
-        settings.setMediaPlaybackRequiresUserGesture(false);
-        settings.setUseWideViewPort(true);
-        settings.setLoadWithOverviewMode(true);
-        settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
+            WebSettings settings = webView.getSettings();
+            settings.setJavaScriptEnabled(true);
+            settings.setDomStorageEnabled(true);
+            settings.setDatabaseEnabled(true);
+            settings.setAllowFileAccess(true);
+            settings.setAllowContentAccess(true);
+            settings.setAllowFileAccessFromFileURLs(true);
+            settings.setAllowUniversalAccessFromFileURLs(true);
+            settings.setMediaPlaybackRequiresUserGesture(false);
+            settings.setUseWideViewPort(true);
+            settings.setLoadWithOverviewMode(true);
+            settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
 
-        webView.setWebChromeClient(new WebChromeClient() {
-            @Override
-            public void onPermissionRequest(final PermissionRequest request) {
-                request.grant(request.getResources());
-            }
+            webView.setWebChromeClient(new WebChromeClient() {
+                @Override
+                public void onPermissionRequest(final PermissionRequest request) {
+                    try {
+                        request.grant(request.getResources());
+                    } catch (Exception e) {
+                        Log.e(TAG, "Permission request error", e);
+                    }
+                }
 
-            @Override
-            public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
-                return super.onConsoleMessage(consoleMessage);
-            }
-        });
+                @Override
+                public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
+                    Log.d(TAG, "JS: " + consoleMessage.message());
+                    return super.onConsoleMessage(consoleMessage);
+                }
+            });
 
-        webView.setWebViewClient(new WebViewClient() {
-            @Override
-            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
-                return super.shouldInterceptRequest(view, request);
-            }
-        });
+            webView.setWebViewClient(new WebViewClient() {
+                @Override
+                public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                    return false;
+                }
+            });
+        } catch (Throwable t) {
+            Log.e(TAG, "Error initializing WebView", t);
+        }
     }
 
     private void checkAndRequestPermissions() {
-        // Ensure base directory exists
-        if (!baseDir.exists()) {
-            baseDir.mkdirs();
-        }
+        try {
+            if (!baseDir.exists()) {
+                baseDir.mkdirs();
+            }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            if (!Environment.isExternalStorageManager()) {
-                try {
-                    Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
-                    intent.addCategory("android.intent.category.DEFAULT");
-                    intent.setData(Uri.parse(String.format("package:%s", getApplicationContext().getPackageName())));
-                    startActivityForResult(intent, STORAGE_PERMISSION_CODE);
-                } catch (Exception e) {
-                    Intent intent = new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
-                    startActivityForResult(intent, STORAGE_PERMISSION_CODE);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                if (!Environment.isExternalStorageManager()) {
+                    try {
+                        Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
+                        intent.setData(Uri.parse("package:" + getPackageName()));
+                        startActivityForResult(intent, STORAGE_PERMISSION_CODE);
+                    } catch (Exception e) {
+                        Intent fallbackIntent = new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
+                        startActivityForResult(fallbackIntent, STORAGE_PERMISSION_CODE);
+                    }
+                    return;
                 }
-                return;
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                if (checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                    requestPermissions(new String[]{
+                            Manifest.permission.READ_EXTERNAL_STORAGE,
+                            Manifest.permission.WRITE_EXTERNAL_STORAGE
+                    }, STORAGE_PERMISSION_CODE);
+                    return;
+                }
             }
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(new String[]{
-                        Manifest.permission.READ_EXTERNAL_STORAGE,
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE
-                }, STORAGE_PERMISSION_CODE);
-                return;
-            }
+        } catch (Exception e) {
+            Log.e(TAG, "Permission check failure", e);
         }
 
         loadGame();
@@ -171,18 +185,22 @@ public class MainActivity extends Activity {
     }
 
     private void loadGame() {
-        // 1. If game.zip exists, automatically unpack it into game/ directory
-        if (gameZip.exists()) {
-            unzipGame();
-        }
+        try {
+            if (gameZip.exists()) {
+                unzipGame();
+            }
 
-        // 2. Check if index.html is available
-        if (gameIndex.exists()) {
-            Toast.makeText(this, "Carregando NEWGEN de /sdcard/NEWGEN/game...", Toast.LENGTH_SHORT).show();
-            webView.loadUrl("file://" + gameIndex.getAbsolutePath());
-        } else {
-            // Display helpful setup guide
-            webView.loadUrl("file:///android_asset/fallback.html");
+            if (gameIndex.exists()) {
+                Toast.makeText(this, "Carregando NEWGEN de /sdcard/NEWGEN/game...", Toast.LENGTH_SHORT).show();
+                webView.loadUrl("file://" + gameIndex.getAbsolutePath());
+            } else {
+                webView.loadUrl("file:///android_asset/fallback.html");
+            }
+        } catch (Throwable t) {
+            Log.e(TAG, "Error in loadGame", t);
+            if (webView != null) {
+                webView.loadUrl("file:///android_asset/fallback.html");
+            }
         }
     }
 
@@ -211,10 +229,9 @@ public class MainActivity extends Activity {
                 }
                 zis.closeEntry();
             }
-            // Delete zip after successful extraction
             gameZip.delete();
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e(TAG, "Error unzipping game", e);
         }
     }
 

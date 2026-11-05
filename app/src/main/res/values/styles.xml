@@ -1,10 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.FullScreen" parent="android:Theme.Material.NoActionBar.Fullscreen">
+    <style name="Theme.FullScreen" parent="@android:style/Theme.NoTitleBar.Fullscreen">
         <item name="android:windowBackground">#030712</item>
         <item name="android:colorBackground">#030712</item>
-        <item name="android:windowNoTitle">true</item>
-        <item name="android:windowFullscreen">true</item>
-        <item name="android:windowContentOverlay">@null</item>
     </style>
 </resources>
