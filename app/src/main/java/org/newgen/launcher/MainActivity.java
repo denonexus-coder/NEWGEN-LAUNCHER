@@ -17,8 +17,6 @@ import android.view.WindowManager;
 import android.webkit.ConsoleMessage;
 import android.webkit.PermissionRequest;
 import android.webkit.WebChromeClient;
-import android.webkit.WebResourceRequest;
-import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -34,8 +32,10 @@ public class MainActivity extends Activity {
 
     private static final String TAG = "NEWGEN_LAUNCHER";
     private static final int STORAGE_PERMISSION_CODE = 1001;
+    private static final int LOCAL_PORT = 8088;
 
     private WebView webView;
+    private LocalServer localServer;
 
     private final File baseDir = new File(Environment.getExternalStorageDirectory(), "NEWGEN");
     private final File gameDir = new File(baseDir, "game");
@@ -47,7 +47,6 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
 
         try {
-            // Safe window fullscreen configuration
             requestWindowFeature(Window.FEATURE_NO_TITLE);
             getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
             getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -90,7 +89,6 @@ public class MainActivity extends Activity {
             webView = new WebView(this);
             setContentView(webView);
 
-            // Hardware acceleration
             webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
 
             WebSettings settings = webView.getSettings();
@@ -191,8 +189,13 @@ public class MainActivity extends Activity {
             }
 
             if (gameIndex.exists()) {
-                Toast.makeText(this, "Carregando NEWGEN de /sdcard/NEWGEN/game...", Toast.LENGTH_SHORT).show();
-                webView.loadUrl("file://" + gameIndex.getAbsolutePath());
+                // Start embedded web server to allow ES modules and modern web assets
+                if (localServer == null) {
+                    localServer = new LocalServer(LOCAL_PORT, gameDir);
+                    localServer.start();
+                }
+                Toast.makeText(this, "Carregando NEWGEN Football 3D...", Toast.LENGTH_SHORT).show();
+                webView.loadUrl("http://127.0.0.1:" + LOCAL_PORT + "/index.html");
             } else {
                 webView.loadUrl("file:///android_asset/fallback.html");
             }
@@ -232,6 +235,14 @@ public class MainActivity extends Activity {
             gameZip.delete();
         } catch (Exception e) {
             Log.e(TAG, "Error unzipping game", e);
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (localServer != null) {
+            localServer.stop();
         }
     }
 
